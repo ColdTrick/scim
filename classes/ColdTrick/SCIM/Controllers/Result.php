@@ -67,11 +67,20 @@ abstract class Result {
 	 * @throws UnauthorizedException
 	 */
 	protected function assertAuthenticated(\Elgg\Request $request): void {
-		if ($request->getParam('token') === '31o@L3aTWG@xEoPk') {
-			return;
+		$auth_header = (string) $request->getHttpRequest()->headers->get('Authorization');
+		$token = str_replace('Bearer ', '', $auth_header);
+
+		// check that an API key is present
+		if (empty($token)) {
+			throw new UnauthorizedException(elgg_echo('APIException:MissingAPIKey'));
 		}
-		
-		throw new UnauthorizedException();
+
+		// check that it is active
+		$api_user = _elgg_services()->apiUsersTable->getApiUser($token);
+		if (!$api_user) {
+			// key is not active or does not exist
+			throw new UnauthorizedException(elgg_echo('APIException:BadAPIKey'));
+		}
 	}
 	
 	/**

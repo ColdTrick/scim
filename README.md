@@ -7,3 +7,12 @@ SCIM Service Provider
 [![License](https://poser.pugx.org/coldtrick/scim/license.svg)](https://packagist.org/packages/coldtrick/scim)
 
 Service Provider implementation of the SCIM protocol. 
+
+# Requirements
+
+To allow authorization using the ``Authorization`` header you will need to enable the following in your ``.htaccess``:
+
+``CGIPassAuth On``
+
+To authorize your request you will need to generate a token using the ``Elgg Web Services`` plugin.
+The bearer token should be provided using the ``Authorization`` header. 

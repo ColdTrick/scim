@@ -10,6 +10,9 @@ return [
 	'plugin' => [
 		'name' => 'SCIM Service Provider',
 		'version' => '0.1',
+		'dependencies' => [
+			'web_services' => [],
+		],
 	],
 	'routes' => [
 		'default:scim:discovery:service_provider_config' => [
