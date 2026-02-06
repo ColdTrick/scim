@@ -1,0 +1,15 @@
+{
+	"name": "coldtrick/scim",
+	"description": "Service Provider implementation of the SCIM protocol",
+	"homepage": "https://www.coldtrick.com",
+	"type": "elgg-plugin",
+	"keywords": ["elgg", "plugin", "scim"],
+	"license": "GPL-2.0-only",
+	"support": {
+		"source": "https://github.com/ColdTrick/scim",
+		"issues": "https://github.com/ColdTrick/scim/issues"
+	},
+	"conflict": {
+		"elgg/elgg": "<6.3"
+	}
+}
