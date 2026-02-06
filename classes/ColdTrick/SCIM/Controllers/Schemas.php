@@ -7,7 +7,7 @@ use Elgg\Http\ResponseBuilder;
 /**
  * Handle the discovery of the Schemas
  */
-class Schemas {
+class Schemas extends Result {
 	
 	/**
 	 * Handle the request
@@ -69,22 +69,6 @@ class Schemas {
 			],
 		];
 		
-		$result = [
-			'schemas' => [
-				'urn:ietf:params:scim:api:messages:2.0:ListResponse',
-			],
-			'totalResults' => count($resources),
-			'itemsPerPage' => count($resources),
-			'startIndex' => 1,
-			'Resources' => $resources,
-		];
-		
-		$response = elgg_ok_response(json_encode($result));
-		$headers = $response->getHeaders();
-		$headers['Content-Type'] = 'application/scim+json';
-		
-		$response->setHeaders($headers);
-		
-		return $response;
+		return $this->respondFromResources($resources);
 	}
 }

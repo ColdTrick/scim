@@ -7,7 +7,7 @@ use Elgg\Http\ResponseBuilder;
 /**
  * Handle the discovery of the Service Provider Config
  */
-class ServiceProviderConfig {
+class ServiceProviderConfig extends Result {
 	
 	/**
 	 * Handle the request
@@ -49,12 +49,6 @@ class ServiceProviderConfig {
 			],
 		];
 		
-		$response = elgg_ok_response(json_encode($result));
-		$headers = $response->getHeaders();
-		$headers['Content-Type'] = 'application/scim+json';
-		
-		$response->setHeaders($headers);
-		
-		return $response;
+		return $this->respondFromResult($result);
 	}
 }
