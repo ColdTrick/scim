@@ -29,7 +29,7 @@ class ServiceProviderConfig extends Result {
 			],
 			'filter' => [
 				'supported' => false,
-				'maxResults' => 100,
+				'maxResults' => self::LIST_MAX_RESULTS,
 			],
 			'changePassword' => [
 				'supported' => false,

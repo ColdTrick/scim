@@ -10,6 +10,8 @@ use Elgg\Http\OkResponse;
  */
 abstract class Result {
 	
+	public const LIST_MAX_RESULTS = 100;
+	
 	/**
 	 * Constructs a new controller
 	 */
