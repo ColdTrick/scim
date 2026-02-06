@@ -21,7 +21,9 @@ class Listing extends Result {
 		$this->assertAuthenticated($request);
 		
 		$offset = (int) $request->getParam('startIndex', 1) - 1;
-		$limit = (int) $request->getParam('count', self::LIST_MAX_RESULTS);
+		$limit = (int) $request->getParam('count');
+		$limit = max($limit, 1); // >= 1 (no negative values)
+		$limit = min($limit, self::LIST_MAX_RESULTS); // max as defined
 		
 		$user_count = elgg_count_entities([
 			'type' => 'user',
