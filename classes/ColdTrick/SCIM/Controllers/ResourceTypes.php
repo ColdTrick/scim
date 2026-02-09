@@ -26,6 +26,6 @@ class ResourceTypes extends Result {
 			],
 		];
 		
-		return $this->respondFromResources($resources);
+		return $this->listResponse($resources);
 	}
 }

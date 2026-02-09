@@ -28,6 +28,6 @@ class Schemas extends Result {
 			],
 		];
 		
-		return $this->respondFromResources($resources);
+		return $this->listResponse($resources);
 	}
 }

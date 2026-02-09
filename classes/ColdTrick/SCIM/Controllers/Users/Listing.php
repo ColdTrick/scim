@@ -41,6 +41,6 @@ class Listing extends Result {
 			$resources[] = $this->getUserInformation($user);
 		}
 		
-		return $this->respondFromResources($resources, $user_count, $offset);
+		return $this->listResponse($resources, $user_count, $offset);
 	}
 }

@@ -38,7 +38,7 @@ abstract class Result {
 	}
 	
 	/**
-	 * Create a response from a resources array
+	 * Create a list response from a resources array
 	 *
 	 * @param array    $resources contents of the resources
 	 * @param int|null $total     total number of results available
@@ -46,7 +46,7 @@ abstract class Result {
 	 *
 	 * @return OkResponse
 	 */
-	protected function respondFromResources(array $resources, ?int $total = null, ?int $offset = null): OkResponse {
+	protected function listResponse(array $resources, ?int $total = null, ?int $offset = null): OkResponse {
 		return $this->respondFromResult([
 			'schemas' => [
 				'urn:ietf:params:scim:api:messages:2.0:ListResponse',
