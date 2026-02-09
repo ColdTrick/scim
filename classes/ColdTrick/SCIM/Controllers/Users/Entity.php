@@ -27,6 +27,8 @@ class Entity extends Result {
 				return $this->getUser($request);
 			case 'POST':
 				return $this->createUser($request);
+			case 'DELETE':
+				return $this->deleteUser($request);
 		}
 		
 		throw new NotImplementedException();
@@ -104,5 +106,33 @@ class Entity extends Result {
 		}
 		
 		throw new InternalServerErrorException();
+	}
+	
+	/**
+	 * Delete a user from the system
+	 *
+	 * @param \Elgg\Request $request Request
+	 *
+	 * @return ResponseBuilder
+	 * @throws HttpException
+	 */
+	protected function deleteUser(\Elgg\Request $request): ResponseBuilder {
+		$guid = (int) $request->getParam('guid');
+		if ($guid < 1) {
+			throw new BadRequestException();
+		}
+		
+		$user = get_user($guid);
+		if (!$user instanceof \ElggUser) {
+			throw new EntityNotFoundException();
+		}
+		
+		return elgg_call(ELGG_IGNORE_ACCESS, function() use ($user) {
+			if (!$user->delete()) {
+				throw new InternalServerErrorException();
+			}
+			
+			return elgg_ok_response('', '', null, ELGG_HTTP_NO_CONTENT);
+		});
 	}
 }
