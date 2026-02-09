@@ -40,7 +40,7 @@ return [
 			'walled' => false,
 		],
 		'default:scim:users:entity' => [
-			'path' => '/scim/Users/{id}',
+			'path' => '/scim/Users/{guid}',
 			'controller' => Entity::class,
 			'walled' => false,
 		],
