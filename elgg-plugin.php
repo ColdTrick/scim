@@ -39,10 +39,17 @@ return [
 			'methods' => ['GET'],
 			'walled' => false,
 		],
+		'default:scim:users:create' => [
+			'path' => '/scim/Users',
+			'controller' => Entity::class,
+			'methods' => ['POST'],
+			'walled' => false,
+		],
 		'default:scim:users:entity' => [
 			'path' => '/scim/Users/{guid}',
 			'controller' => Entity::class,
 			'walled' => false,
+			'methods' => ['GET', 'PUT', 'PATCH', 'DELETE'],
 		],
 	],
 ];

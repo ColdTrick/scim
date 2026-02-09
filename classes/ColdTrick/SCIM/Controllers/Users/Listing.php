@@ -11,13 +11,9 @@ use Elgg\Http\ResponseBuilder;
 class Listing extends Result {
 	
 	/**
-	 * Handle the request
-	 *
-	 * @param \Elgg\Request $request Request
-	 *
-	 * @return ResponseBuilder
+	 * {@inheritdoc}
 	 */
-	public function __invoke(\Elgg\Request $request): ResponseBuilder {
+	protected function handleRequest(\Elgg\Request $request): ResponseBuilder {
 		$this->assertAuthenticated($request);
 		
 		$offset = (int) $request->getParam('startIndex', 1) - 1;

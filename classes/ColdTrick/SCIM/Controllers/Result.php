@@ -2,9 +2,13 @@
 
 namespace ColdTrick\SCIM\Controllers;
 
+use Elgg\Exceptions\Http\BadRequestException;
 use Elgg\Exceptions\Http\UnauthorizedException;
+use Elgg\Exceptions\HttpException;
 use Elgg\Http\OkResponse;
+use Elgg\Http\ResponseBuilder;
 use Elgg\Values;
+use Psr\Log\LogLevel;
 
 /**
  * Base SCIM controller
@@ -12,6 +16,8 @@ use Elgg\Values;
 abstract class Result {
 	
 	public const LIST_MAX_RESULTS = 100;
+	
+	protected ?array $user_attributes;
 	
 	/**
 	 * Constructs a new controller
@@ -21,20 +27,63 @@ abstract class Result {
 	}
 	
 	/**
+	 * Handle a request
+	 *
+	 * @param \Elgg\Request $request Request
+	 *
+	 * @return void
+	 */
+	final public function __invoke(\Elgg\Request $request): void {
+		try {
+			$response = $this->handleRequest($request);
+		} catch (HttpException $e) {
+			$response = elgg_error_response($e->getMessage(), REFERRER, $e->getCode());
+		} catch (\Throwable $t) {
+			$response = elgg_error_response($t->getMessage());
+		}
+		
+		if ($response->isRedirection()) {
+			$symfony = _elgg_services()->responseFactory->prepareRedirectResponse(
+				$response->getForwardURL(),
+				$response->getStatusCode(),
+				$response->getHeaders()
+			);
+			$symfony->setContent($response->getContent());
+		} else {
+			$symfony = _elgg_services()->responseFactory->prepareResponse(
+				$response->getContent(),
+				$response->getStatusCode(),
+				$response->getHeaders(),
+			);
+		}
+		
+		$symfony->headers->set('Content-Type', 'application/scim+json');
+		$symfony->headers->set('Content-Disposition', 'attachment; filename="result.json"');
+		
+		$symfony->send();
+		exit();
+	}
+	
+	/**
+	 * Internal handling of the request
+	 *
+	 * @param \Elgg\Request $request Request
+	 *
+	 * @return ResponseBuilder
+	 */
+	abstract protected function handleRequest(\Elgg\Request $request): ResponseBuilder;
+	
+	/**
 	 * Create a response from a result array
 	 *
-	 * @param array $result contents of the result
+	 * @param array       $result      contents of the result
+	 * @param string|null $forward_url forward URL
+	 * @param int         $http_code   HTTP response code
 	 *
 	 * @return OkResponse
 	 */
-	protected function respondFromResult(array $result): OkResponse {
-		$response = elgg_ok_response(json_encode($result));
-		$headers = $response->getHeaders();
-		$headers['Content-Type'] = 'application/scim+json';
-		
-		$response->setHeaders($headers);
-		
-		return $response;
+	protected function respondFromResult(array $result, ?string $forward_url = null, int $http_code = ELGG_HTTP_OK): OkResponse {
+		return elgg_ok_response(json_encode($result), '', $forward_url, $http_code);
 	}
 	
 	/**
@@ -89,7 +138,11 @@ abstract class Result {
 	 * @return array[]
 	 */
 	protected function getUserAttributes(): array {
-		return [
+		if (isset($this->user_attributes)) {
+			return $this->user_attributes;
+		}
+		
+		$attributes = [
 			[
 				'name' => 'userName',
 				'type' => 'string',
@@ -131,6 +184,17 @@ abstract class Result {
 				'mutability' => 'readWrite',
 			],
 		];
+		
+		$result = elgg_trigger_event_results('user:attributes', 'scim', ['attributes' => $attributes], $attributes);
+		if (!is_array($result)) {
+			elgg_log("The results of the 'user:attributes', 'scim' event should be an array", LogLevel::ERROR);
+			
+			$this->user_attributes = $attributes;
+			return $this->user_attributes;
+		}
+		
+		$this->user_attributes = $result;
+		return $this->user_attributes;
 	}
 	
 	/**
@@ -151,7 +215,7 @@ abstract class Result {
 				'created' => Values::normalizeTime($user->time_created)->format(\DateTimeInterface::ATOM),
 				'lastModified' => Values::normalizeTime($user->time_updated)->format(\DateTimeInterface::ATOM),
 				'location' => elgg_generate_url('default:scim:users:entity', [
-					'id' => $user->guid,
+					'guid' => $user->guid,
 				]),
 			],
 		];
@@ -184,6 +248,44 @@ abstract class Result {
 			}
 			
 			$result[$name] = $value;
+		}
+		
+		return $result;
+	}
+	
+	/**
+	 * Transform a request body to an array with user attributes
+	 *
+	 * @param \Elgg\Request $request Request
+	 *
+	 * @return array
+	 * @throws BadRequestException
+	 */
+	protected function requestBodyToUserAttributes(\Elgg\Request $request): array {
+		$raw_body = $request->getHttpRequest()->getContent();
+		if (empty($raw_body)) {
+			throw new BadRequestException();
+		}
+		
+		$body = json_decode($raw_body, true);
+		if (!is_array($body)) {
+			throw new BadRequestException();
+		}
+		
+		$result = [];
+		
+		$attributes = $this->getUserAttributes();
+		foreach ($attributes as $attribute) {
+			$name = elgg_extract('name', $attribute);
+			if (empty($name)) {
+				continue;
+			}
+			
+			if (!isset($body[$name])) {
+				continue;
+			}
+			
+			$result[$name] = $body[$name];
 		}
 		
 		return $result;

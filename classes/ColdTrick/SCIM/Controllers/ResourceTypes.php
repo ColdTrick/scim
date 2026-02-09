@@ -10,13 +10,9 @@ use Elgg\Http\ResponseBuilder;
 class ResourceTypes extends Result {
 	
 	/**
-	 * Handle the request
-	 *
-	 * @param \Elgg\Request $request Request
-	 *
-	 * @return ResponseBuilder
+	 * {@inheritdoc}
 	 */
-	public function __invoke(\Elgg\Request $request): ResponseBuilder {
+	protected function handleRequest(\Elgg\Request $request): ResponseBuilder {
 		$resources = [
 			[
 				'id' => 'User',
