@@ -5,6 +5,7 @@ namespace ColdTrick\SCIM\Controllers;
 use Elgg\Exceptions\Http\BadRequestException;
 use Elgg\Exceptions\Http\UnauthorizedException;
 use Elgg\Exceptions\HttpException;
+use Elgg\Http\ErrorResponse;
 use Elgg\Http\OkResponse;
 use Elgg\Http\ResponseBuilder;
 use Elgg\Values;
@@ -37,9 +38,9 @@ abstract class Result {
 		try {
 			$response = $this->handleRequest($request);
 		} catch (HttpException $e) {
-			$response = elgg_error_response($e->getMessage(), REFERRER, $e->getCode());
+			$response = $this->errorResponse($e->getCode(), $e->getMessage());
 		} catch (\Throwable $t) {
-			$response = elgg_error_response($t->getMessage());
+			$response = $this->errorResponse(ELGG_HTTP_INTERNAL_SERVER_ERROR, $t->getMessage());
 		}
 		
 		if ($response->isRedirection()) {
@@ -105,6 +106,36 @@ abstract class Result {
 			'startIndex' => $offset ? $offset + 1 : 1,
 			'Resources' => $resources,
 		]);
+	}
+	
+	/**
+	 * Create an error response
+	 *
+	 * @param int         $http_code HTTP status code
+	 * @param string|null $message   (optional) error message
+	 * @param string|null $scim_type (optional) additional SCIM error message type
+	 *
+	 * @return ErrorResponse
+	 */
+	protected function errorResponse(int $http_code, ?string $message = null, ?string $scim_type = null): ErrorResponse {
+		$error = elgg_error_response('', REFERRER, $http_code);
+		
+		$contents = [
+			'schemas' => ['urn:ietf:params:scim:api:messages:2.0:Error'],
+			'status' => (string) $http_code,
+		];
+		
+		if (!empty($message)) {
+			$contents['detail'] = $message;
+		}
+		
+		if (!empty($scim_type)) {
+			$contents['scimType'] = $scim_type;
+		}
+		
+		$error->setContent(json_encode($contents));
+		
+		return $error;
 	}
 	
 	/**
