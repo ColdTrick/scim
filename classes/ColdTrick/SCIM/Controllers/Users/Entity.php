@@ -29,9 +29,33 @@ class Entity extends Result {
 				return $this->createUser($request);
 			case 'DELETE':
 				return $this->deleteUser($request);
+			case 'PUT':
+				return $this->updateUser($request, true);
 		}
 		
 		throw new NotImplementedException();
+	}
+	
+	/**
+	 * Get the user from the request
+	 *
+	 * @param \Elgg\Request $request Request
+	 *
+	 * @return \ElggUser
+	 * @throws HttpException
+	 */
+	protected function getUserFromRequest(\Elgg\Request $request): \ElggUser {
+		$guid = (int) $request->getParam('guid');
+		if ($guid < 1) {
+			throw new BadRequestException();
+		}
+		
+		$user = get_user($guid);
+		if (!$user instanceof \ElggUser) {
+			throw new EntityNotFoundException();
+		}
+		
+		return $user;
 	}
 	
 	/**
@@ -43,15 +67,7 @@ class Entity extends Result {
 	 * @throws HttpException
 	 */
 	protected function getUser(\Elgg\Request $request): ResponseBuilder {
-		$guid = (int) $request->getParam('guid');
-		if ($guid < 1) {
-			throw new BadRequestException();
-		}
-		
-		$user = get_user($guid);
-		if (!$user instanceof \ElggUser) {
-			throw new EntityNotFoundException();
-		}
+		$user = $this->getUserFromRequest($request);
 		
 		$info = $this->getUserInformation($user);
 		
@@ -117,15 +133,7 @@ class Entity extends Result {
 	 * @throws HttpException
 	 */
 	protected function deleteUser(\Elgg\Request $request): ResponseBuilder {
-		$guid = (int) $request->getParam('guid');
-		if ($guid < 1) {
-			throw new BadRequestException();
-		}
-		
-		$user = get_user($guid);
-		if (!$user instanceof \ElggUser) {
-			throw new EntityNotFoundException();
-		}
+		$user = $this->getUserFromRequest($request);
 		
 		return elgg_call(ELGG_IGNORE_ACCESS, function() use ($user) {
 			if (!$user->delete()) {
@@ -133,6 +141,101 @@ class Entity extends Result {
 			}
 			
 			return elgg_ok_response('', '', null, ELGG_HTTP_NO_CONTENT);
+		});
+	}
+	
+	/**
+	 * Update a user
+	 *
+	 * @param \Elgg\Request $request     Request
+	 * @param bool          $full_update Update all information (default: false)
+	 *
+	 * @return ResponseBuilder
+	 * @throws HttpException
+	 */
+	protected function updateUser(\Elgg\Request $request, bool $full_update = false): ResponseBuilder {
+		return elgg_call(ELGG_IGNORE_ACCESS | ELGG_SHOW_DISABLED_ENTITIES, function() use ($request, $full_update) {
+			$user = $this->getUserFromRequest($request);
+			
+			$user_body = $this->requestBodyToUserAttributes($request, $full_update);
+			foreach ($user_body as $name => $value) {
+				switch ($name) {
+					case 'userName':
+						if ($user->username === $value) {
+							continue(2);
+						}
+						
+						if (elgg_get_user_by_username($value)) {
+							throw new BadRequestException('duplicate username');
+						}
+						
+						try {
+							_elgg_services()->accounts->assertValidUsername($value);
+							
+							$user->username = $value;
+						} catch (RegistrationException $e) {
+							throw new BadRequestException($e->getMessage());
+						}
+						break;
+					case 'displayName':
+						if ($user->username === $value) {
+							continue(2);
+						}
+						
+						$user->name = $value;
+						break;
+					case 'email':
+						if ($user->email === $value) {
+							continue(2);
+						}
+						
+						try {
+							_elgg_services()->accounts->assertValidEmail($value);
+							
+							$user->email = $value;
+						} catch (RegistrationException $e) {
+							throw new BadRequestException($e->getMessage());
+						}
+						break;
+					case 'password':
+						try {
+							_elgg_services()->accounts->assertCurrentPassword($user, $value);
+							
+							continue(2);
+						} catch (RegistrationException $e) {
+							// new password
+						}
+						
+						try {
+							_elgg_services()->accounts->assertValidPassword($value);
+							
+							$user->setPassword($value);
+						} catch (RegistrationException $e) {
+							throw new BadRequestException($e->getMessage());
+						}
+						break;
+					case 'active':
+						$user_is_active = !$user->isBanned();
+						
+						if ($user_is_active === $value) {
+							continue(2);
+						}
+						
+						$result = $value ? $user->unban() : $user->ban();
+						if (!$result) {
+							throw new InternalServerErrorException('active failed');
+						}
+						break;
+				}
+			}
+			
+			if (!$user->save()) {
+				throw new InternalServerErrorException();
+			}
+			
+			$user_info = $this->getUserInformation($user);
+			
+			return $this->respondFromResult($user_info);
 		});
 	}
 }

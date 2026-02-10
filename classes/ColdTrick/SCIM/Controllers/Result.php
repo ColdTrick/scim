@@ -287,12 +287,13 @@ abstract class Result {
 	/**
 	 * Transform a request body to an array with user attributes
 	 *
-	 * @param \Elgg\Request $request Request
+	 * @param \Elgg\Request $request                  Request
+	 * @param bool          $include_empty_attributes include non submitted attributes (default: false)
 	 *
 	 * @return array
 	 * @throws BadRequestException
 	 */
-	protected function requestBodyToUserAttributes(\Elgg\Request $request): array {
+	protected function requestBodyToUserAttributes(\Elgg\Request $request, bool $include_empty_attributes = false): array {
 		$raw_body = $request->getHttpRequest()->getContent();
 		if (empty($raw_body)) {
 			throw new BadRequestException();
@@ -312,11 +313,11 @@ abstract class Result {
 				continue;
 			}
 			
-			if (!isset($body[$name])) {
+			if (!isset($body[$name]) && !$include_empty_attributes) {
 				continue;
 			}
 			
-			$result[$name] = $body[$name];
+			$result[$name] = $body[$name] ?? null;
 		}
 		
 		return $result;
