@@ -61,7 +61,7 @@ abstract class Result {
 		$symfony->headers->set('Content-Type', 'application/scim+json');
 		$symfony->headers->set('Content-Disposition', 'attachment; filename="result.json"');
 		
-		$symfony->send();
+		_elgg_services()->responseFactory->send($symfony);
 		exit();
 	}
 	
