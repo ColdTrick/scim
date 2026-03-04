@@ -28,7 +28,7 @@ class ServiceProviderConfig extends Result {
 				'maxResults' => self::LIST_MAX_RESULTS,
 			],
 			'changePassword' => [
-				'supported' => false,
+				'supported' => true,
 			],
 			'sort' => [
 				'supported' => false,

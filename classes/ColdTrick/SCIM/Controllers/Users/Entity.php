@@ -111,6 +111,25 @@ class Entity extends Result {
 				'validated' => true,
 			]);
 			
+			unset($user_body['userName']);
+			unset($user_body['displayName']);
+			unset($user_body['email']);
+			unset($user_body['password']);
+			
+			elgg_call(ELGG_IGNORE_ACCESS, function() use ($user_body, $user) {
+				foreach ($user_body as $name => $value) {
+					$result = elgg_trigger_event_results('user:set_data', 'scim', [
+						'entity' => $user,
+						'name' => $name,
+						'value' => $value,
+					], null);
+					
+					if ($result === false) {
+						throw new InternalServerErrorException("Unable to save '{$name}' for user '{$user->getDisplayName()}'");
+					}
+				}
+			});
+			
 			$user_info = $this->getUserInformation($user);
 			$user_url = elgg_generate_url('default:scim:users:entity', [
 				'guid' => $user->guid,
@@ -224,6 +243,17 @@ class Entity extends Result {
 						$result = $value ? $user->unban() : $user->ban();
 						if (!$result) {
 							throw new InternalServerErrorException('active failed');
+						}
+						break;
+					default:
+						$result = elgg_trigger_event_results('user:set_data', 'scim', [
+							'entity' => $user,
+							'name' => $name,
+							'value' => $value,
+						], null);
+						
+						if ($result === false) {
+							throw new InternalServerErrorException("Unable to save '{$name}' for user '{$user->getDisplayName()}'");
 						}
 						break;
 				}
