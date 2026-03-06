@@ -50,7 +50,9 @@ class Entity extends Result {
 			throw new BadRequestException();
 		}
 		
-		$user = get_user($guid);
+		$user = elgg_call(ELGG_SHOW_DISABLED_ENTITIES, function() use ($guid) {
+			return get_user($guid);
+		});
 		if (!$user instanceof \ElggUser) {
 			throw new EntityNotFoundException();
 		}
@@ -90,17 +92,6 @@ class Entity extends Result {
 		$email = elgg_extract('email', $user_body);
 		$password = elgg_extract('password', $user_body) ?? elgg_generate_password();
 		
-		$existing_user = elgg_call(ELGG_IGNORE_ACCESS | ELGG_SHOW_DISABLED_ENTITIES | ELGG_SHOW_DELETED_ENTITIES, function() use ($username) {
-			return elgg_get_user_by_username($username);
-		});
-		if ($existing_user instanceof \ElggUser) {
-			throw new BadRequestException('duplicate user');
-		}
-		
-		if (empty($email) || !elgg_is_valid_email($email)) {
-			throw new BadRequestException('bad email');
-		}
-		
 		try {
 			$user = elgg_register_user([
 				'username' => $username,
@@ -139,8 +130,6 @@ class Entity extends Result {
 		} catch (RegistrationException $e) {
 			throw new BadRequestException($e->getMessage());
 		}
-		
-		throw new InternalServerErrorException();
 	}
 	
 	/**
@@ -155,7 +144,7 @@ class Entity extends Result {
 		$user = $this->getUserFromRequest($request);
 		
 		return elgg_call(ELGG_IGNORE_ACCESS, function() use ($user) {
-			if (!$user->delete()) {
+			if (!$user->delete(true, true)) {
 				throw new InternalServerErrorException();
 			}
 			
